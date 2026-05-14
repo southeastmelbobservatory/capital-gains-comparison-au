@@ -7,6 +7,7 @@ The app uses a single date-driven calculation path rather than comparing legacy 
 - gains up to 1 July 2027 use current discount treatment where eligible
 - gains after 1 July 2027 use an inflation-indexed real-gain approach
 - post-reform gains can trigger the announced 30% minimum tax rule
+- the calculator also shows a side-by-side legacy-rules estimate so users can compare the reform outcome with the old regime
 
 This is an estimate tool only. It is not tax, legal, or financial advice.
 
@@ -50,7 +51,13 @@ Both commands should pass before publishing changes.
 
 ## Data
 
-CPI handling is currently input-driven. The remaining work is to embed or generate the CPI dataset from the verified ABS table 17 source and add a repeatable update script.
+The app embeds the verified ABS Table 17 quarterly CPI series as a generated TypeScript dataset. Regenerate it with:
+
+```bash
+npm run update:cpi
+```
+
+The generator downloads the latest ABS CPI release page, finds the Table 17 workbook, and rewrites the embedded quarterly Australia series with source metadata.
 
 ## Sources
 

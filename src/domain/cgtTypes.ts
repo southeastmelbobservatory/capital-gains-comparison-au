@@ -63,6 +63,13 @@ export interface CgtRuleSegment {
   notes: string[]
 }
 
+export interface LegacyComparisonSummary {
+  taxableCapitalGain: number
+  estimatedTax: number
+  effectiveTaxRate: number
+  notes: string[]
+}
+
 export interface CapitalGainsResult {
   input: CapitalGainsInput
   capitalProceeds: number
@@ -74,6 +81,7 @@ export interface CapitalGainsResult {
   taxableCapitalGain: number
   estimatedTax: number
   effectiveTaxRate: number
+  legacyComparison: LegacyComparisonSummary
   validation: ValidationIssue[]
 }
 

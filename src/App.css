@@ -44,6 +44,7 @@
 .result-hero span,
 .result-hero small,
 .metric-grid span,
+.comparison-card span,
 .segment-card span {
   display: block;
   color: var(--muted);
@@ -245,6 +246,52 @@ h3 {
   font-size: 20px;
 }
 
+.comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.comparison-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(25, 112, 74, 0.06), rgba(25, 112, 74, 0.02));
+}
+
+.comparison-card--legacy {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.05), rgba(15, 23, 42, 0.02));
+}
+
+.comparison-card strong {
+  color: var(--text-h);
+  font-size: 32px;
+  line-height: 1.05;
+}
+
+.comparison-card dl {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.comparison-delta {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  background: rgba(25, 112, 74, 0.04);
+}
+
+.comparison-delta strong {
+  color: var(--text-h);
+  font-size: 16px;
+}
+
 .segment-list,
 .assumptions,
 .source-list,
@@ -369,7 +416,8 @@ dd {
   }
 
   .field-grid,
-  .metric-grid {
+  .metric-grid,
+  .comparison-grid {
     grid-template-columns: 1fr;
   }
 

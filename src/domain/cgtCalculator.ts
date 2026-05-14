@@ -3,6 +3,7 @@ import type {
   CapitalGainsResult,
   CgtRuleSegment,
   EligibilitySummary,
+  LegacyComparisonSummary,
 } from './cgtTypes'
 import {
   CGT_REFORM_START_DATE,
@@ -62,6 +63,26 @@ function calculateAcquisitionBase(input: CapitalGainsInput): number {
     + input.costs.acquisition
     + input.costs.improvement
     + input.costs.ownership
+}
+
+function calculateLegacyComparison(
+  input: CapitalGainsInput,
+  ownershipAdjustedGain: number,
+  eligibility: EligibilitySummary,
+): LegacyComparisonSummary {
+  const taxableCapitalGain = eligibility.discountEligible ? ownershipAdjustedGain * 0.5 : ownershipAdjustedGain
+  const estimatedTax = input.residencyStatus === 'resident'
+    ? estimateAdditionalResidentTax(input.taxableIncomeBeforeGain.dollars, taxableCapitalGain)
+    : 0
+
+  return {
+    taxableCapitalGain: roundCurrency(taxableCapitalGain),
+    estimatedTax: roundCurrency(estimatedTax),
+    effectiveTaxRate: ownershipAdjustedGain > 0 ? roundCurrency(estimatedTax / ownershipAdjustedGain) : 0,
+    notes: eligibility.discountEligible
+      ? ['Legacy rules apply the 50% CGT discount to the whole eligible gain.']
+      : ['Legacy rules tax the whole gain because the asset/taxpayer is not discount eligible.'],
+  }
 }
 
 function makeDiscountSegment(
@@ -133,6 +154,7 @@ export function calculateCapitalGains(input: CapitalGainsInput): CapitalGainsRes
   const eligibility = buildEligibility(input)
 
   if (hasBlockingValidationErrors(validation) || ownershipAdjustedGain <= 0) {
+    const legacyComparison = calculateLegacyComparison(input, Math.max(0, ownershipAdjustedGain), eligibility)
     return {
       input,
       capitalProceeds: roundCurrency(capitalProceeds),
@@ -144,6 +166,7 @@ export function calculateCapitalGains(input: CapitalGainsInput): CapitalGainsRes
       taxableCapitalGain: 0,
       estimatedTax: 0,
       effectiveTaxRate: 0,
+      legacyComparison,
       validation,
     }
   }
@@ -175,6 +198,7 @@ export function calculateCapitalGains(input: CapitalGainsInput): CapitalGainsRes
 
   const taxableCapitalGain = segments.reduce((total, segment) => total + segment.taxableGain, 0)
   const estimatedTax = segments.reduce((total, segment) => total + segment.estimatedTax, 0)
+  const legacyComparison = calculateLegacyComparison(input, ownershipAdjustedGain, eligibility)
 
   return {
     input,
@@ -187,6 +211,7 @@ export function calculateCapitalGains(input: CapitalGainsInput): CapitalGainsRes
     taxableCapitalGain: roundCurrency(taxableCapitalGain),
     estimatedTax: roundCurrency(estimatedTax),
     effectiveTaxRate: ownershipAdjustedGain > 0 ? roundCurrency(estimatedTax / ownershipAdjustedGain) : 0,
+    legacyComparison,
     validation,
   }
 }

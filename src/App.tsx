@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { calculateCapitalGains } from './domain/cgtCalculator'
 import { CGT_REFORM_START_DATE } from './domain/dateRules'
+import { ABS_TABLE_17_METADATA } from './domain/cpi'
 import {
   DEFAULT_INPUT,
   type AssetCategory,
@@ -58,6 +59,10 @@ function App() {
   const warnings = calculation.validation.filter((issue) => issue.severity === 'warning')
   const postReformSegments = calculation.segments.filter((segment) => segment.period === 'post-2027-indexed')
   const minimumTaxTriggered = postReformSegments.some((segment) => segment.minimumTaxApplied)
+  const legacyTaxDelta = calculation.legacyComparison.estimatedTax - calculation.estimatedTax
+  const currentTaxPayable = calculation.estimatedTax
+  const legacyTaxPayable = calculation.legacyComparison.estimatedTax
+  const cpiDatasetNote = `${ABS_TABLE_17_METADATA.rowCount} quarterly observations through ${ABS_TABLE_17_METADATA.referencePeriod}`
 
   return (
     <main className="app-shell">
@@ -80,19 +85,19 @@ function App() {
       <section className="summary-strip" aria-label="Calculation summary">
         <div>
           <span>Estimated CGT</span>
-          <strong>{formatMoney(calculation.estimatedTax)}</strong>
+          <strong>{formatMoney(currentTaxPayable)}</strong>
         </div>
         <div>
           <span>Taxable capital gain</span>
           <strong>{formatMoney(calculation.taxableCapitalGain)}</strong>
         </div>
         <div>
-          <span>Rule periods</span>
-          <strong>{calculation.segments.length || 'None'}</strong>
+          <span>If rules stayed as they were</span>
+          <strong>{formatMoney(legacyTaxPayable)}</strong>
         </div>
         <div>
-          <span>Minimum tax</span>
-          <strong>{minimumTaxTriggered ? 'Triggered' : 'Not triggered'}</strong>
+          <span>Tax difference</span>
+          <strong>{legacyTaxDelta === 0 ? 'No change' : formatMoney(Math.abs(legacyTaxDelta))}</strong>
         </div>
       </section>
 
@@ -293,7 +298,7 @@ function App() {
           <div className="panel-heading">
             <div>
               <h2>Estimate</h2>
-              <p>No method comparison. The result follows the rule period triggered by the dates.</p>
+              <p>Side-by-side comparison of the current reform estimate versus the legacy rules.</p>
             </div>
           </div>
 
@@ -323,6 +328,57 @@ function App() {
               <span>Effective rate</span>
               <strong>{percentFormatter.format(calculation.effectiveTaxRate)}</strong>
             </div>
+          </div>
+
+          <div className="comparison-grid" aria-label="Tax comparison">
+            <article className="comparison-card">
+              <span>Current reform rules</span>
+              <strong>{formatMoney(currentTaxPayable)}</strong>
+              <dl>
+                <div>
+                  <dt>Taxable gain</dt>
+                  <dd>{formatMoney(calculation.taxableCapitalGain)}</dd>
+                </div>
+                <div>
+                  <dt>Effective rate</dt>
+                  <dd>{percentFormatter.format(calculation.effectiveTaxRate)}</dd>
+                </div>
+              </dl>
+              <p className="segment-note">
+                Gain is split across the reform date, with the post-1 July 2027 portion using CPI indexation
+                and the provisional 30% minimum tax floor.
+              </p>
+            </article>
+            <article className="comparison-card comparison-card--legacy">
+              <span>If rules stayed as they were</span>
+              <strong>{formatMoney(legacyTaxPayable)}</strong>
+              <dl>
+                <div>
+                  <dt>Taxable gain</dt>
+                  <dd>{formatMoney(calculation.legacyComparison.taxableCapitalGain)}</dd>
+                </div>
+                <div>
+                  <dt>Effective rate</dt>
+                  <dd>{percentFormatter.format(calculation.legacyComparison.effectiveTaxRate)}</dd>
+                </div>
+              </dl>
+              <p className="segment-note">{calculation.legacyComparison.notes.join(' ')}</p>
+            </article>
+          </div>
+
+          <div className="comparison-delta" aria-label="Tax payable difference">
+            <strong>
+              {legacyTaxDelta === 0
+                ? 'No tax difference between the scenarios.'
+                : legacyTaxDelta > 0
+                  ? `${formatMoney(legacyTaxDelta)} more tax under the reform rules.`
+                  : `${formatMoney(Math.abs(legacyTaxDelta))} less tax under the reform rules.`}
+            </strong>
+            <span>
+              {minimumTaxTriggered
+                ? 'The 30% minimum tax floor is affecting the current estimate.'
+                : 'The minimum tax floor is not binding on the current estimate.'}
+            </span>
           </div>
 
           <div className="segment-list">
@@ -379,6 +435,7 @@ function App() {
               <li>Rules are based on the 2026-27 Budget announcement and remain subject to legislation.</li>
               <li>Gains up to 1 July 2027 use current discount treatment where eligible.</li>
               <li>Gains after 1 July 2027 use the entered 1 July 2027 value as the new-rule cost base.</li>
+              <li>ABS Table 17 CPI data is embedded in the app and currently covers {cpiDatasetNote}.</li>
               <li>This is an estimate only, not tax or financial advice.</li>
             </ul>
           </div>
