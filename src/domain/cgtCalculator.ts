@@ -177,7 +177,9 @@ export function calculateCapitalGains(input: CapitalGainsInput): CapitalGainsRes
   if (!eligibility.newRulesApply) {
     segments.push(makeDiscountSegment(input, ownershipAdjustedGain, eligibility, input.acquisitionDate, input.disposalDate))
   } else if (isOnOrAfter(input.acquisitionDate, CGT_REFORM_START_DATE)) {
-    segments.push(makeIndexedSegment(input, ownershipAdjustedGain, costBase, input.acquisitionDate, input.disposalDate))
+    const ownershipRatio = input.ownershipPercentage / 100
+    const indexableCostBase = calculateAcquisitionBase(input) * ownershipRatio
+    segments.push(makeIndexedSegment(input, ownershipAdjustedGain, indexableCostBase, input.acquisitionDate, input.disposalDate))
   } else {
     const ownershipRatio = input.ownershipPercentage / 100
     const reformValue = input.marketValueAtReformStart.dollars || (

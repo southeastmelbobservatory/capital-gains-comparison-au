@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { calculateCapitalGains } from './domain/cgtCalculator'
 import { CGT_REFORM_START_DATE } from './domain/dateRules'
 import { ABS_TABLE_17_METADATA } from './domain/cpi'
+import { compareTaxPayable } from './domain/taxComparison'
 import {
   DEFAULT_INPUT,
   type AssetCategory,
@@ -59,9 +60,9 @@ function App() {
   const warnings = calculation.validation.filter((issue) => issue.severity === 'warning')
   const postReformSegments = calculation.segments.filter((segment) => segment.period === 'post-2027-indexed')
   const minimumTaxTriggered = postReformSegments.some((segment) => segment.minimumTaxApplied)
-  const legacyTaxDelta = calculation.legacyComparison.estimatedTax - calculation.estimatedTax
   const currentTaxPayable = calculation.estimatedTax
   const legacyTaxPayable = calculation.legacyComparison.estimatedTax
+  const taxComparison = compareTaxPayable(currentTaxPayable, legacyTaxPayable)
   const cpiDatasetNote = `${ABS_TABLE_17_METADATA.rowCount} quarterly observations through ${ABS_TABLE_17_METADATA.referencePeriod}`
 
   return (
@@ -97,7 +98,7 @@ function App() {
         </div>
         <div>
           <span>Tax difference</span>
-          <strong>{legacyTaxDelta === 0 ? 'No change' : formatMoney(Math.abs(legacyTaxDelta))}</strong>
+          <strong>{taxComparison.direction === 'same' ? 'No change' : formatMoney(taxComparison.difference)}</strong>
         </div>
       </section>
 
@@ -368,11 +369,11 @@ function App() {
 
           <div className="comparison-delta" aria-label="Tax payable difference">
             <strong>
-              {legacyTaxDelta === 0
+              {taxComparison.direction === 'same'
                 ? 'No tax difference between the scenarios.'
-                : legacyTaxDelta > 0
-                  ? `${formatMoney(legacyTaxDelta)} more tax under the reform rules.`
-                  : `${formatMoney(Math.abs(legacyTaxDelta))} less tax under the reform rules.`}
+                : taxComparison.direction === 'reform-higher'
+                  ? `${formatMoney(taxComparison.difference)} more tax under the reform rules.`
+                  : `${formatMoney(taxComparison.difference)} less tax under the reform rules.`}
             </strong>
             <span>
               {minimumTaxTriggered

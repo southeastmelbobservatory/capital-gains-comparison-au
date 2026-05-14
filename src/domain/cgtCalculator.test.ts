@@ -69,4 +69,31 @@ describe('calculateCapitalGains', () => {
     expect(result.estimatedTax).toBe(result.legacyComparison.estimatedTax)
     expect(result.taxableCapitalGain).toBe(result.legacyComparison.taxableCapitalGain)
   })
+
+  it('indexes only the ownership-adjusted acquisition-side base for post-reform acquisitions', () => {
+    const result = calculateCapitalGains(
+      makeInput({
+        acquisitionDate: '2028-01-01',
+        disposalDate: '2030-01-01',
+        acquisitionAmount: { dollars: 1000 },
+        disposalAmount: { dollars: 3000 },
+        ownershipPercentage: 50,
+        costs: {
+          acquisition: 100,
+          disposal: 400,
+          improvement: 100,
+          ownership: 0,
+        },
+        taxableIncomeBeforeGain: { dollars: 0 },
+        cpiAtReformStart: 100,
+        cpiAtDisposal: 110,
+      }),
+    )
+
+    expect(result.ownershipAdjustedGain).toBe(700)
+    expect(result.segments).toHaveLength(1)
+    expect(result.segments[0].indexedCostBase).toBe(660)
+    expect(result.segments[0].taxableGain).toBe(640)
+    expect(result.segments[0].estimatedTax).toBe(192)
+  })
 })
