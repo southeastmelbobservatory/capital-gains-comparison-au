@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   ABS_TABLE_17_METADATA,
   ABS_TABLE_17_QUARTERLY_AUSTRALIA,
+  calculateDisposalCpiFromAnnualRate,
   findQuarterlyCpi,
   getAustralianQuarterPeriod,
   latestQuarterlyCpi,
@@ -28,5 +29,10 @@ describe('ABS Table 17 CPI dataset', () => {
       index: 101.7,
       percentageChange: 1.4,
     })
+  })
+
+  it('converts an average annual CPI rate into a disposal CPI index', () => {
+    expect(calculateDisposalCpiFromAnnualRate(100, 3, 3)).toBe(109.3)
+    expect(calculateDisposalCpiFromAnnualRate(100, 3, 0)).toBe(100)
   })
 })

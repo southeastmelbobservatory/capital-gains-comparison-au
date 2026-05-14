@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { calculateCapitalGains } from './domain/cgtCalculator'
-import { CGT_REFORM_START_DATE } from './domain/dateRules'
-import { ABS_TABLE_17_METADATA } from './domain/cpi'
+import { CGT_REFORM_START_DATE, daysHeld } from './domain/dateRules'
+import { ABS_TABLE_17_METADATA, calculateDisposalCpiFromAnnualRate } from './domain/cpi'
 import { compareTaxPayable } from './domain/taxComparison'
 import {
   DEFAULT_INPUT,
@@ -12,6 +12,8 @@ import {
   type ResidencyStatus,
 } from './domain/cgtTypes'
 import './App.css'
+
+type CpiInputMode = 'annual-average' | 'index-values'
 
 const currencyFormatter = new Intl.NumberFormat('en-AU', {
   style: 'currency',
@@ -30,6 +32,13 @@ function toNumber(value: string): number {
 
 function formatMoney(value: number): string {
   return currencyFormatter.format(Number.isFinite(value) ? value : 0)
+}
+
+function formatNumber(value: number): string {
+  return new Intl.NumberFormat('en-AU', {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 1,
+  }).format(Number.isFinite(value) ? value : 0)
 }
 
 function updateMoney(
@@ -55,7 +64,19 @@ function updateCost(input: CapitalGainsInput, field: keyof DisposalCosts, value:
 
 function App() {
   const [input, setInput] = useState<CapitalGainsInput>(DEFAULT_INPUT)
-  const calculation = useMemo(() => calculateCapitalGains(input), [input])
+  const [cpiInputMode, setCpiInputMode] = useState<CpiInputMode>('annual-average')
+  const [averageAnnualCpiRate, setAverageAnnualCpiRate] = useState(2.5)
+  const postReformCpiYears = Math.max(0, daysHeld(CGT_REFORM_START_DATE, input.disposalDate) / 365.25)
+  const calculatedDisposalCpi = calculateDisposalCpiFromAnnualRate(
+    input.cpiAtReformStart,
+    averageAnnualCpiRate,
+    postReformCpiYears,
+  )
+  const calculationInput = useMemo(
+    () => (cpiInputMode === 'annual-average' ? { ...input, cpiAtDisposal: calculatedDisposalCpi } : input),
+    [calculatedDisposalCpi, cpiInputMode, input],
+  )
+  const calculation = useMemo(() => calculateCapitalGains(calculationInput), [calculationInput])
   const blockingIssues = calculation.validation.filter((issue) => issue.severity === 'error')
   const warnings = calculation.validation.filter((issue) => issue.severity === 'warning')
   const postReformSegments = calculation.segments.filter((segment) => segment.period === 'post-2027-indexed')
@@ -229,6 +250,22 @@ function App() {
           </div>
 
           <h3 className="group-title">CPI assumptions</h3>
+          <div className="segmented-control" aria-label="CPI input mode">
+            <button
+              type="button"
+              className={cpiInputMode === 'annual-average' ? 'active' : ''}
+              onClick={() => setCpiInputMode('annual-average')}
+            >
+              Average annual CPI %
+            </button>
+            <button
+              type="button"
+              className={cpiInputMode === 'index-values' ? 'active' : ''}
+              onClick={() => setCpiInputMode('index-values')}
+            >
+              CPI index values
+            </button>
+          </div>
           <div className="field-grid">
             <label>
               CPI at 1 July 2027
@@ -240,17 +277,34 @@ function App() {
                 onChange={(event) => setInput({ ...input, cpiAtReformStart: toNumber(event.target.value) })}
               />
             </label>
-            <label>
-              CPI at disposal
-              <input
-                type="number"
-                min="0"
-                step="0.1"
-                value={input.cpiAtDisposal}
-                onChange={(event) => setInput({ ...input, cpiAtDisposal: toNumber(event.target.value) })}
-              />
-            </label>
+            {cpiInputMode === 'annual-average' ? (
+              <label>
+                Average CPI per year %
+                <input
+                  type="number"
+                  step="0.1"
+                  value={averageAnnualCpiRate}
+                  onChange={(event) => setAverageAnnualCpiRate(toNumber(event.target.value))}
+                />
+              </label>
+            ) : (
+              <label>
+                CPI at disposal
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  value={input.cpiAtDisposal}
+                  onChange={(event) => setInput({ ...input, cpiAtDisposal: toNumber(event.target.value) })}
+                />
+              </label>
+            )}
           </div>
+          <p className="helper-text">
+            {cpiInputMode === 'annual-average'
+              ? `${formatNumber(averageAnnualCpiRate)}% average CPI for ${formatNumber(postReformCpiYears)} post-reform years gives a disposal CPI of ${formatNumber(calculatedDisposalCpi)}.`
+              : `Using CPI index ${formatNumber(input.cpiAtReformStart)} at 1 July 2027 and ${formatNumber(input.cpiAtDisposal)} at disposal.`}
+          </p>
 
           <div className="cost-section">
             <h3 className="group-title">Costs</h3>

@@ -20,4 +20,16 @@ export function latestQuarterlyCpi(): CpiObservation {
   return ABS_TABLE_17_QUARTERLY_AUSTRALIA[ABS_TABLE_17_QUARTERLY_AUSTRALIA.length - 1]
 }
 
+export function calculateDisposalCpiFromAnnualRate(
+  cpiAtStart: number,
+  annualRatePercent: number,
+  years: number,
+): number {
+  if (!Number.isFinite(cpiAtStart) || cpiAtStart <= 0) return 0
+  if (!Number.isFinite(annualRatePercent)) return cpiAtStart
+  if (!Number.isFinite(years) || years <= 0) return cpiAtStart
+
+  return Math.round(cpiAtStart * ((1 + annualRatePercent / 100) ** years) * 10) / 10
+}
+
 export { ABS_TABLE_17_METADATA, ABS_TABLE_17_QUARTERLY_AUSTRALIA }

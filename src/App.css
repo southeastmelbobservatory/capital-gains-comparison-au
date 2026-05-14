@@ -166,6 +166,35 @@ button.secondary-action:hover {
   border-color: var(--accent);
 }
 
+.segmented-control {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  margin-bottom: 12px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--control-bg);
+}
+
+.segmented-control button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.segmented-control button.active {
+  color: var(--text-h);
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--border-strong);
+}
+
 input:focus,
 select:focus {
   outline: 2px solid var(--accent-soft);
@@ -204,6 +233,12 @@ select:focus {
 .toggle-field small {
   color: var(--muted);
   font-weight: 500;
+}
+
+.helper-text {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 h3 {
